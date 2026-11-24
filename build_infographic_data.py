@@ -59,7 +59,7 @@ CPU_RULES = [
              r"\bjs\d{2}", r"\bqs\d{2}", r"eserver", r"\bpseries", r"\bp690",
              r"\bsp power", r"\bsp2\b", r"\bsp3\b", r"\bsp4\b"]),
     # Chinese designs (after Intel: some "Sunway" clusters are Xeon based)
-    ("China (Sunway, Phytium, Hygon…)", [
+    ("Chinese CPUs (Sunway, Phytium, Hygon, LX2…)", [
         r"sunway", r"sw26010", r"shenwei", r"phytium", r"ft-?1500", r"ft-?2000",
         r"hygon", r"\bc86\b", r"\blx2\b", r"lingkun", r"godson", r"loongson"
     ]),
@@ -83,7 +83,7 @@ CPU_RULES = [
     ("Thinking Machines", [r"\bcm-?5", r"\bcm-?200", r"\bcm-?2\b", r"thinking"]),
     ("Arm (others)", [r"\barm\b", r"thunderx", r"cavium", r"marvell", r"graviton", r"kunpeng",
                       r"ampere altra", r"\baltra\b", r"rhea"]),
-    ("China (Sunway, Phytium, Hygon…)", [r"matrix-2000"]),
+    ("Chinese CPUs (Sunway, Phytium, Hygon, LX2…)", [r"matrix-2000"]),
     # Clusters described only by their node model or clock (2000s)
     ("Intel", [r"poweredge", r"\bp4\b", r"\bpiii\b", r"pentium", r"\bx5\d{2}x?\b", r"\bx54xx",
                r"\be54xx", r"bullx", r"novascale", r"\bqc ht\b", r"\bprecision \d{3}"]),
@@ -110,7 +110,7 @@ GPU_RULES = [
              r"\bamd gpu", r"\bmi300a\b"]),
     ("Intel", [r"xeon phi", r"knights corner", r"\bmic\b", r"data center gpu max", r"ponte vecchio",
                r"intel gpu", r"\b5110p\b", r"\b7120p\b", r"\b31s1p\b", r"\bknc\b"]),
-    ("China (Matrix-2000…)", [r"matrix-?2000", r"lingqi", r"\bdcu\b", r"deep computing processor", r"metax"]),
+    ("Chinese accelerators (Matrix-2000, DCU, MetaX, LingQi…)", [r"matrix-?2000", r"lingqi", r"\bdcu\b", r"deep computing processor", r"metax"]),
     ("PEZY", [r"pezy"]),
     ("Others (Cell, NEC VE, MN-Core…)", [r"powerxcell", r"\bcell\b", r"clearspeed", r"\bgrape",
                                          r"\bmn-?core", r"\bsx-?aurora\s*tsubasa", r"vector engine",
@@ -127,14 +127,14 @@ CPU_GROUPS = {
     "Fujitsu": ["Fujitsu"],
     "Vector (Cray, NEC, Hitachi)": ["Cray (vector)", "NEC (vector)", "Hitachi"],
     "RISC Unix (Alpha, PA-RISC, MIPS, SPARC)": ["DEC / Compaq Alpha", "HP PA-RISC", "SGI / MIPS", "Sun SPARC"],
-    "China": ["China (Sunway, Phytium, Hygon…)"],
+    "China": ["Chinese CPUs (Sunway, Phytium, Hygon, LX2…)"],
     "Others": ["Thinking Machines", "Arm (others)", "Others"],
 }
 GPU_GROUPS = {
     "NVIDIA": ["NVIDIA"],
     "AMD": ["AMD"],
     "Intel": ["Intel"],
-    "China": ["China (Matrix-2000…)"],
+    "China": ["Chinese accelerators (Matrix-2000, DCU, MetaX, LingQi…)"],
     "Others": ["PEZY", "Others (Cell, NEC VE, MN-Core…)"],
 }
 
@@ -270,6 +270,9 @@ def main():
                         "rmax": rmax,  # GFlop/s
                         "rpeak": float(text(s, "r-peak") or 0),
                         "power": power_kw(s),  # kW, None if not reported
+                        # technologies of the catalogue found in the description
+                        "cpu_tech": [n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "cpu" and r.search(computer)],
+                        "gpu_tech": [n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "gpu" and r.search(computer)],
                         "cpu": cpu,
                         "gpu": gpu,
                     })
