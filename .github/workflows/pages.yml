@@ -1,0 +1,59 @@
+# Publishes the infographic on GitHub Pages.
+# The data are already embedded in top500_infographic.html (regenerate them
+# locally with build_infographic_data.py and commit the result): this workflow
+# only copies the static pages to the site.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp top500_infographic.html methodology.html top500_infographic_data.json _site/
+          # the site root opens the infographic
+          cat > _site/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+          <meta charset="utf-8">
+          <title>TOP500 timeline</title>
+          <meta http-equiv="refresh" content="0; url=top500_infographic.html">
+          <link rel="canonical" href="top500_infographic.html">
+          </head>
+          <body><p><a href="top500_infographic.html">TOP500 timeline</a></p></body>
+          </html>
+          EOF
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

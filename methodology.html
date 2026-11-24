@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Methodology · TOP500 timeline</title>
+<meta name="description" content="How the TOP500 timeline infographic identifies vendors and technologies and computes market shares.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f3f5f7; --surface: #fbfcfc; --ink: #10161d; --ink-2: #4b5664; --ink-3: #7a8592;
+  --rule: #d8dde3; --rule-2: #e7eaee;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1217; --surface: #151a21; --ink: #e9edf1; --ink-2: #a3adb8; --ink-3: #737e8a;
+    --rule: #2a323d; --rule-2: #1f262f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1217; --surface: #151a21; --ink: #e9edf1; --ink-2: #a3adb8; --ink-3: #737e8a;
+  --rule: #2a323d; --rule-2: #1f262f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 760px; margin: 0 auto; padding-block: 48px 64px; display: grid; gap: 20px; }
+.back { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; }
+.back:hover { color: var(--ink); }
+h1 {
+  font-family: var(--f-display); font-stretch: 70%; font-weight: 800;
+  font-size: clamp(2.4rem, 7vw, 4.5rem); line-height: .95; letter-spacing: -.01em; margin: 0;
+}
+h2 { font-family: var(--f-display); font-stretch: 80%; font-size: 21px; margin: 18px 0 0; }
+p { margin: 0; color: var(--ink-2); max-width: 72ch; }
+ul { margin: 0; padding-left: 1.2em; color: var(--ink-2); max-width: 72ch; display: grid; gap: 6px; }
+a { color: inherit; }
+code { font-family: var(--f-mono); font-size: 13px; background: var(--rule-2); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="top500_infographic.html">← Back to the timeline</a>
+  <h1>Methodology</h1>
+  <p>All charts are computed from the TOP500 lists published twice a year (June and November) on
+    <a href="https://www.top500.org">www.top500.org</a>, starting with the November 1994 list.</p>
+
+  <h2>New entries in the top 10</h2>
+  <p>A machine is counted the first time it appears in the top 10.
+    Upgrades of the same system (same site, same name) are not counted again. The series starts with the
+    November 1994 list, so its ten machines all appear as new. The shaded band shows the range from the #10
+    to the #1 of each list.</p>
+
+  <h2>Performance of the list</h2>
+  <p>For each list, four statistics of the measured performance (Rmax, LINPACK) of its 500 systems, on a log scale:
+    the aggregate performance (sum of the 500 Rmax), the maximum (the #1 system), the mean and the median.
+    The gap between mean and median shows how much the list is dominated by its largest systems.</p>
+
+  <h2>Power consumption</h2>
+  <p>The TOP500 lists give the power of a system (in kW, measured during the LINPACK run or estimated) from June 2008
+    only, and not for every system: depending on the list, between about 40% and 90% of the 500 systems report it.
+    The chart shows, among the systems that report it, the largest consumer, the #1 system, the mean and the median.
+    The total of the reported values depends on how many systems report one, so it is only given on hover, with the
+    number of systems concerned. Where the #1 system does not report its power, its line is interrupted.</p>
+  <p>The “power of new top 10 entries” chart places each machine entering the top 10 for the first time at the
+    height of its reported power, with the same symbols as the first chart. Machines that do not report their power
+    are not shown (about a quarter of the entries since June 2008).</p>
+
+  <h2>Vendors</h2>
+  <p>The TOP500 files have no structured “processor” field: the CPU vendor and the
+    accelerator vendor are inferred from the machine description (“HPE Cray EX255a, AMD 4th Gen EPYC 24C 1.8GHz,
+    AMD Instinct MI300A…”) with keyword rules. Self-hosted Xeon Phi (Knights Landing) count as CPUs,
+    Xeon Phi cards (Knights Corner) as accelerators. Grace Hopper chips count for NVIDIA on both sides.
+    Small families are grouped together; the detail appears on hover.</p>
+
+  <h2>New processors and accelerators</h2>
+  <p>A catalogue of about one hundred processor and accelerator generations
+    (Xeon Sandy Bridge, EPYC Rome, Fermi, Hopper, SPARC64 VIIIfx…) is searched for in the description of every machine.
+    The dot is placed at the first list in which at least one system uses it. Its height is the peak double-precision
+    (FP64) performance of one device (log scale), its colour is the vendor, and its size reflects the peak number of systems using it in a single list. Technologies already present in the first list are drawn as outlines:
+    they may be older than 1994.</p>
+  <p>Processors and accelerators each have their own chart. Accelerators are grouped like in the accelerator share
+    chart (Cell and NEC SX-Aurora under “Others”). For the 1990s, descriptions give the machine model rather than
+    the chip: ORIGIN 2000 is counted as MIPS R10000, SuperDome as PA-RISC, etc.</p>
+
+  <h2>Performance of one device</h2>
+  <p>The TOP500 lists only give totals per machine (Rmax, Rpeak, number of cores), not the number of chips, so the
+    performance of a single processor or accelerator cannot be derived from them. The heights of the “new processors”
+    and “new accelerators” charts therefore come from vendor specifications, listed in <code>tech_catalog.py</code>:
+    the peak FP64 performance of one chip (or one package for multi-die parts such as the MI250X), for the model used
+    by the first TOP500 system with that technology when it can be identified. For GPUs and accelerators, the vector
+    FP64 figure is used, without matrix or tensor units. For the vector machines of the 1990s, one device is one
+    processor or processing element. Chips without a reliable public FP64 figure
+    (Hygon DCU, MetaX, LX2, LingQi) are not plotted.</p>
+  <p>These values are approximate. The exact model is not always given in the TOP500 description, and a single
+    generation covers several models with different clocks and core counts, so the true value of the first system
+    may differ by a few tens of percent. Some values are more uncertain:</p>
+  <ul>
+    <li><strong>Radeon / FirePro</strong> (480 GFlop/s): nominal figure of a Radeon HD 4870 X2 board; the boards
+      of Tianhe-1 ran at a reduced clock, so the actual value is lower (about 370 GFlop/s).</li>
+    <li><strong>Blackwell B200</strong> (40 TFlop/s): NVIDIA figures vary between products (HGX, DGX, GB200) and
+      memory configurations, by about 10%.</li>
+    <li><strong>Hopper</strong> (25.6 TFlop/s): figure of the H100 PCIe used by the first system; the H100 SXM
+      reaches 34 TFlop/s.</li>
+    <li><strong>Instinct MI325X / MI355X</strong> (78.6 TFlop/s): MI355X figure; the MI325X is rated at 81.7 TFlop/s.</li>
+    <li><strong>EPYC Turin</strong> (9.8 TFlop/s): assumes full-width AVX-512 (32 FP64 operations per cycle and
+      core) at base clock; actual sustained clocks under AVX-512 are lower.</li>
+    <li><strong>ClearSpeed</strong> (50 GFlop/s): figure for one Advance accelerator board (two chips), not one chip.</li>
+    <li><strong>GRAPE-DR</strong> (256 GFlop/s) and <strong>MN-Core</strong> (32.8 TFlop/s): figures announced by
+      the designers, with little independent documentation.</li>
+    <li><strong>PEZY-SC</strong> (1.5 TFlop/s): depends on the clock of the first systems (about 690–733 MHz).</li>
+    <li><strong>Hitachi SR8000</strong> (1 GFlop/s) and <strong>SR11000</strong> (13.6 GFlop/s): Hitachi quotes
+      figures per node; the per-processor value is derived from the node figure.</li>
+    <li><strong>Pre-2000 RISC and vector processors</strong>: clock rates vary between models of the same machine,
+      and the first system's clock is often not given; the value uses a typical clock of the time.</li>
+  </ul>
+
+  <h2>Shares</h2>
+  <p>In “number of systems” mode, each chart gives the percentage of the 500 machines. In “share of performance”
+    mode, it gives the fraction of the list’s aggregate Rmax. In the accelerator chart, the top of the stack is
+    therefore the share of accelerated systems; the rest are CPU-only.</p>
+
+  <h2>Limits</h2>
+  <p>Because vendors and technologies are inferred from free text, some systems may be misclassified, especially
+    in the oldest lists. These groupings are an interpretation made for this infographic and do not come from
+    the TOP500 project.</p>
+
+  <h2>Reproducing the data</h2>
+  <p>The data are produced by <code>build_infographic_data.py</code> from the TOP500 XML files; the technology
+    catalogue is in <code>tech_catalog.py</code>.</p>
+</main>
+</body>
+</html>
