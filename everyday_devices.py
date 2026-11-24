@@ -25,6 +25,7 @@ EVERYDAY_DEVICES = [
     ("2022.02", "console", "Steam Deck", 1600, "AMD APU GPU, 1.6 GHz (Valve figure)"),
     ("2022.10", "computer", "GeForce RTX 4090", 82600, "gaming graphics card"),
     ("2023.09", "phone", "iPhone 15 Pro", 2150, "A17 Pro GPU"),
+    ("2023.10", "computer", "Raspberry Pi 5", 153.6, "CPU, 4 Cortex-A76 cores at 2.4 GHz (no reliable GPU figure)"),
     ("2024.11", "console", "PlayStation 5 Pro", 16700, "GPU"),
     ("2025.01", "computer", "GeForce RTX 5090", 104800, "gaming graphics card"),
     ("2025.10", "computer", "MacBook Pro M5", 4100, "M5 GPU, 10 cores, estimate (Apple publishes no figure)"),
