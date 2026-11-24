@@ -1,6 +1,6 @@
 # ______________________________________________________________________________
 #
-# Builds the dataset used by top500_infographic.html:
+# Builds the dataset used by index.html:
 # - every system entering the TOP10 for the first time (date, Rmax, name...)
 # - CPU vendor share of the TOP500 (number of systems and Rmax) per list
 # - GPU / accelerator vendor share of the TOP500 per list
@@ -335,7 +335,7 @@ def main():
         json.dump(out, fh, ensure_ascii=False)
 
     # Inject the data into the self-contained HTML page (between the markers)
-    html_path = os.path.join(HERE, "top500_infographic.html")
+    html_path = os.path.join(HERE, "index.html")
     try:
         with open(html_path, encoding="utf8") as fh:
             html = fh.read()

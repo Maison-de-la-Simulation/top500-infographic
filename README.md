@@ -1,9 +1,13 @@
 # TOP500 timeline
 
+[![Deploy to GitHub Pages](https://github.com/Maison-de-la-Simulation/top500-infographic/actions/workflows/pages.yml/badge.svg)](https://github.com/Maison-de-la-Simulation/top500-infographic/actions/workflows/pages.yml)
+
 An interactive infographic tracing the history of supercomputers from the
 [TOP500](https://www.top500.org) lists, from November 1994 to today.
 
-The page [top500_infographic.html](top500_infographic.html) is self-contained:
+**See it online: <https://www.mdls.fr/top500-infographic/>**
+
+The page [index.html](index.html) is self-contained:
 the data are embedded in it, so you only need to open it in a browser (only the
 fonts are loaded from Google Fonts).
 
@@ -31,7 +35,7 @@ aggregate Rmax. The method is described in [methodology.html](methodology.html).
 
 | File | Purpose |
 |---|---|
-| `top500_infographic.html` | The infographic page (HTML/SVG/JS, data included) |
+| `index.html` | The infographic page (HTML/SVG/JS, data included) |
 | `methodology.html` | How vendors, technologies and shares are computed |
 | `build_infographic_data.py` | Reads the TOP500 XML files, computes the data and injects them into the page |
 | `tech_catalog.py` | Catalogue of tracked technologies (vendor, type, name, regular expression) and peak FP64 of one device |
@@ -51,7 +55,7 @@ TOP500_DB=/path/to/xml python3 build_infographic_data.py
 ```
 
 The script rewrites `top500_infographic_data.json` and replaces the data
-embedded in `top500_infographic.html` (between the `/*DATA_START*/` and
+embedded in `index.html` (between the `/*DATA_START*/` and
 `/*DATA_END*/` markers). The `-v` option prints the machines whose CPU was not
 recognised, and the first appearance date of each technology.
 
@@ -60,10 +64,10 @@ To track a new chip, add an entry to `tech_catalog.py`.
 
 ## Publishing on GitHub Pages
 
-The workflow `.github/workflows/pages.yml` publishes the pages on GitHub Pages
-at every push to `main` (it can also be started by hand from the *Actions*
+The workflow `.github/workflows/pages.yml` publishes the pages on GitHub Pages,
+at <https://www.mdls.fr/top500-infographic/>, at every push to `main` (it can also be started by hand from the *Actions*
 tab). It does not regenerate the data, since the TOP500 XML files are not in
-the repository: regenerate them locally, then commit `top500_infographic.html`.
+the repository: regenerate them locally, then commit `index.html`.
 
 One-time setup: in the repository *Settings → Pages*, set *Source* to
 *GitHub Actions*.
