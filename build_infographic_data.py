@@ -21,7 +21,7 @@ import collections
 import os
 import xml.etree.ElementTree as ET
 
-from tech_catalog import TECH_CATALOG, DEVICE_FP64
+from tech_catalog import TECH_CATALOG, DEVICE_FP64, FP64_SOURCES, FLOPS_PER_CYCLE_REF
 from everyday_devices import EVERYDAY_DEVICES
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -103,14 +103,17 @@ GPU_RULES = [
     ("NVIDIA", [r"nvidia", r"tesla", r"\bv100\b", r"\bp100\b", r"\ba100\b", r"\bh100\b", r"\bh200\b",
                 r"\bgh200\b", r"\bgb200\b", r"\bgb300\b", r"\bb200\b", r"\bb300\b", r"\bk20x?\b",
                 r"\bk40\b", r"\bk80\b", r"\bm2050\b", r"\bm2070\b", r"\bm2090\b", r"\bc2050\b",
-                r"\bc2070\b", r"\bc2090\b", r"\bc1060\b", r"\bs1070\b", r"\bvolta\b", r"\bampere\b",
-                r"\bhopper\b", r"\bblackwell\b", r"\bgv100\b", r"\bl40s?\b", r"\ba40\b", r"\ba30\b",
+                r"\bc2070\b", r"\bc2090\b", r"\bc1060\b", r"\bs1070\b", r"\bvolta\b", r"nvidia ampere",
+                # bare "hopper" / "ampere" would also match the NERSC Cray XE6 "Hopper"
+                # and Ampere Altra Arm CPUs
+                r"nvidia hopper", r"grace hopper", r"\bblackwell\b", r"\bgv100\b", r"\bl40s?\b", r"\ba40\b", r"\ba30\b",
                 r"\bt4\b", r"\bgtx", r"\bquadro", r"\brtx", r"\bxk\d", r"\bpascal\b", r"\bkepler\b"]),
     ("AMD", [r"instinct", r"\bmi\d{2,3}[a-z]?\b", r"radeon", r"firepro", r"\bati\b", r"\bvega\b",
              r"\bamd gpu", r"\bmi300a\b"]),
     ("Intel", [r"xeon phi", r"knights corner", r"\bmic\b", r"data center gpu max", r"ponte vecchio",
                r"intel gpu", r"\b5110p\b", r"\b7120p\b", r"\b31s1p\b", r"\bknc\b"]),
-    ("Chinese accelerators (Matrix-2000, DCU, MetaX, LingQi…)", [r"matrix-?2000", r"lingqi", r"\bdcu\b", r"deep computing processor", r"metax"]),
+    # "LingQi" in LineShine's description is its interconnect, not an accelerator
+    ("Chinese accelerators (Matrix-2000, DCU, MetaX…)", [r"matrix-?2000", r"\bdcu\b", r"deep computing processor", r"metax"]),
     ("PEZY", [r"pezy"]),
     ("Others (Cell, NEC VE, MN-Core…)", [r"powerxcell", r"\bcell\b", r"clearspeed", r"\bgrape",
                                          r"\bmn-?core", r"\bsx-?aurora\s*tsubasa", r"vector engine",
@@ -134,7 +137,7 @@ GPU_GROUPS = {
     "NVIDIA": ["NVIDIA"],
     "AMD": ["AMD"],
     "Intel": ["Intel"],
-    "China": ["Chinese accelerators (Matrix-2000, DCU, MetaX, LingQi…)"],
+    "China": ["Chinese accelerators (Matrix-2000, DCU, MetaX…)"],
     "Others": ["PEZY", "Others (Cell, NEC VE, MN-Core…)"],
 }
 
@@ -183,6 +186,47 @@ def classify_gpu(computer):
 def text(site, tag):
     v = site.findtext("t:" + tag, default="", namespaces=NS)
     return (v or "").strip()
+
+
+def fp64_source(name, system_id=""):
+    """Source of the FP64 value of a technology (text, possibly with URLs)."""
+    if name in FP64_SOURCES:
+        return FP64_SOURCES[name]
+    value, basis = DEVICE_FP64.get(name, (None, ""))
+    if value is None:
+        return "no public FP64 figure found"
+    page = f"https://www.top500.org/system/{system_id}" if system_id else ""
+    return ("computed: cores x clock x FP64 operations per cycle " + FLOPS_PER_CYCLE_REF
+            + (" ; cores and clock: first system " + page if page else ""))
+
+
+def source_table(techs):
+    """HTML table of the FP64 values and their sources (methodology page)."""
+    esc = lambda t: (t or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    def fmt(g):
+        if g is None:
+            return "—"
+        for unit, f in (("TFlop/s", 1e3), ("GFlop/s", 1), ("MFlop/s", 1e-3)):
+            if g >= f:
+                return f"{g / f:.3g} {unit}"
+    rows = []
+    for t in sorted(techs, key=lambda t: (t["first"]["date"], t["name"])):
+        # turn every URL of the source text into a link labelled by its site
+        parts, pos, src = [], 0, t["fp64_src"]
+        for m in re.finditer(r"https?://[^\s)]+", src):
+            url = m.group(0)
+            label = re.sub(r"^https?://(www\.)?([^/]+).*$", r"\2", url)
+            if "top500.org/system/" in url:
+                label = "top500.org"
+            parts.append(esc(src[pos:m.start()]) + f'<a href="{esc(url)}">{esc(label)}</a>')
+            pos = m.end()
+        src = "".join(parts) + esc(src[pos:])
+        rows.append(
+            f"<tr><td>{esc(t['name'])}</td><td>{'accelerator' if t['kind'] == 'gpu' else 'processor'}</td>"
+            f"<td class=\"n\">{t['first']['date']}</td><td class=\"n\">{fmt(t['fp64'])}</td>"
+            f"<td>{esc(t['fp64_ref'])}</td><td>{src}</td></tr>")
+    return ("<table><thead><tr><th>Technology</th><th>Type</th><th>First list</th><th>FP64 peak (1 device)</th>"
+            "<th>Basis</th><th>Source</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table>")
 
 
 def power_kw(site):
@@ -241,6 +285,7 @@ def main():
                             "name": (text(s, "system-name") or computer.split(",")[0]).split(" - ")[0].strip(),
                             "site": text(s, "installation-site/t:installation-site-name"),
                             "country": text(s, "country"),
+                            "system_id": text(s, "system-id"),
                             "rmax": rmax,  # GFlop/s
                             "rpeak": float(text(s, "r-peak") or 0),
                         }
@@ -322,6 +367,7 @@ def main():
             "lane": lane, "kind": kind, "name": name,
             "fp64": DEVICE_FP64.get(name, (None, ""))[0],  # GFlop/s, one device
             "fp64_ref": DEVICE_FP64.get(name, (None, ""))[1],
+            "fp64_src": fp64_source(name, tech_first[k].get("system_id", "")),
             "first": tech_first[k],
             "peak": [counts[peak_date], peak_date],
             "last": max(counts),
@@ -356,6 +402,20 @@ def main():
         print("Data injected into", html_path)
     except FileNotFoundError:
         print(html_path, "not found: data not injected")
+
+    # Inject the table of FP64 values and sources into the methodology page
+    meth_path = os.path.join(HERE, "methodology.html")
+    try:
+        with open(meth_path, encoding="utf8") as fh:
+            meth = fh.read()
+        table = source_table(techs)
+        meth = re.sub(r"<!--TABLE_START-->.*?<!--TABLE_END-->",
+                      lambda _: "<!--TABLE_START-->" + table + "<!--TABLE_END-->", meth, flags=re.S)
+        with open(meth_path, "w", encoding="utf8") as fh:
+            fh.write(meth)
+        print("Source table injected into", meth_path)
+    except FileNotFoundError:
+        print(meth_path, "not found: source table not injected")
 
     if "-v" in sys.argv:
         print("Unclassified CPU entries:")
