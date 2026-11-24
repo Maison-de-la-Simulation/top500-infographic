@@ -15,12 +15,14 @@ fonts are loaded from Google Fonts).
 
 - **New entries in the top 10**: every machine when it first enters the top 10,
   with its Rmax.
-- **Performance of the list**: aggregate, maximum, mean and median Rmax of
+- **Performance of the list**: aggregate, maximum, mean, median and minimum (#500) Rmax of
   the 500 systems of each list.
 - **Power consumption**: largest consumer, #1 system, mean and median power of
   the systems that report it (from June 2008).
 - **Power of new top 10 entries**: power of each machine entering the top 10,
   when it is reported.
+- **Everyday devices**: consoles, phones and computers compared with the #1
+  and #500 systems of each list (order of magnitude only, see the methodology).
 - **New processors** and **new accelerators**: first appearance of about one
   hundred processor and accelerator generations (Xeon Sandy Bridge, EPYC Rome,
   Fermi, Hopper, SPARC64 VIIIfx…), placed at the peak FP64 performance of
@@ -38,6 +40,7 @@ aggregate Rmax. The method is described in [methodology.html](methodology.html).
 | `index.html` | The infographic page (HTML/SVG/JS, data included) |
 | `methodology.html` | How vendors, technologies and shares are computed |
 | `build_infographic_data.py` | Reads the TOP500 XML files, computes the data and injects them into the page |
+| `everyday_devices.py` | Everyday devices (release date, peak FP32) for the comparison chart |
 | `tech_catalog.py` | Catalogue of tracked technologies (vendor, type, name, regular expression) and peak FP64 of one device |
 | `top500_infographic_data.json` | The same data as JSON |
 

@@ -22,6 +22,7 @@ import os
 import xml.etree.ElementTree as ET
 
 from tech_catalog import TECH_CATALOG, DEVICE_FP64
+from everyday_devices import EVERYDAY_DEVICES
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -288,6 +289,7 @@ def main():
             "n": len(sites),
             "top1": rmax_sorted[0],
             "top10": rmax_sorted[9],
+            "last": rmax_sorted[-1],  # Rmax of the #500
             # aggregate Rmax of the list (GFlop/s)
             "sum": total_rmax,
             "mean": total_rmax / len(sites),
@@ -330,6 +332,10 @@ def main():
         "lists": lists,
         "top10_newcomers": newcomers,
         "technologies": techs,
+        "everyday": [
+            {"date": d, "cat": c, "name": n, "gflops": g, "ref": r}
+            for d, c, n, g, r in EVERYDAY_DEVICES
+        ],
     }
     with open(os.path.join(HERE, "top500_infographic_data.json"), "w", encoding="utf8") as fh:
         json.dump(out, fh, ensure_ascii=False)

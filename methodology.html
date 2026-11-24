@@ -64,8 +64,19 @@ code { font-family: var(--f-mono); font-size: 13px; background: var(--rule-2); p
 
   <h2>Performance of the list</h2>
   <p>For each list, four statistics of the measured performance (Rmax, LINPACK) of its 500 systems, on a log scale:
-    the aggregate performance (sum of the 500 Rmax), the maximum (the #1 system), the mean and the median.
+    the aggregate performance (sum of the 500 Rmax), the maximum (the #1 system), the mean, the median and the minimum (the #500 system).
     The gap between mean and median shows how much the list is dominated by its largest systems.</p>
+
+  <h2>Everyday devices</h2>
+  <p>This chart places a few consoles, phones and computers at their release date and at the peak performance of
+    their graphics processor, against the #1 and #500 systems of each TOP500 list. A dot on the #1 curve, in the colour
+    of the device and pointed at by a small arrow with its name, marks when the #1 system reached the same performance; on hover, the chart also tells until which list the device
+    would have entered the TOP500.</p>
+  <p>The comparison is generous to the devices and only gives an order of magnitude. Their figures are theoretical
+    single-precision (FP32) peaks, as quoted by manufacturers or usual technical sources, while TOP500 figures are
+    measured double-precision (FP64) LINPACK results; the double-precision performance of these devices is often
+    several times to tens of times lower. Some figures are estimates, since Apple does not publish the performance of
+    its phone GPUs. The list of devices is in <code>everyday_devices.py</code>.</p>
 
   <h2>Power consumption</h2>
   <p>The TOP500 lists give the power of a system (in kW, measured during the LINPACK run or estimated) from June 2008
