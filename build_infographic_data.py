@@ -347,6 +347,7 @@ def main():
                 "n": len(reported),
                 "sum": round(sum(reported), 1),
                 "max": max(reported),
+                "min": min(reported),
                 "mean": round(sum(reported) / len(reported), 1),
                 "median": statistics.median(reported),
                 "top1": power[0] or None,
