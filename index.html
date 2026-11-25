@@ -1117,10 +1117,8 @@ const D = /*DATA_START*/{"source":"TOP500 lists (top500.org), 1994.11 – 2026.1
       `<tr><td>${atStart ? "Already present" : "First seen"}</td><td class="v">${dateLabel(f.date)}</td></tr>` +
       `<tr><td>First system</td><td class="v">#${f.rank} · ${esc(f.name)}</td></tr>` +
       `<tr><td>FP64 peak (1 device)</td><td class="v">${flops(t.fp64)}</td></tr>` +
-      `<tr><td>Reference</td><td class="v">${esc(t.fp64_ref)}</td></tr>` +
-      `<tr><td>Site</td><td class="v">${esc(f.site)}${f.country ? " (" + esc(f.country) + ")" : ""}</td></tr>` +
-      `<tr><td>Peak</td><td class="v">${t.peak[0]} system${t.peak[0] > 1 ? "s" : ""} · ${dateLabel(t.peak[1])}</td></tr>` +
-      `<tr><td>Last list</td><td class="v">${dateLabel(t.last)}</td></tr>` +
+      `<tr><td>Properties</td><td class="v">${esc(t.fp64_ref)}</td></tr>` +
+      `<tr><td>Num. systems</td><td class="v">${t.peak[0]} (${dateLabel(t.peak[1])})</td></tr>` +
       `</table>` +
       (atStart ? `<div class="sub" style="margin-top:4px">First list available here: the technology may be older.</div>` : "");
   }
