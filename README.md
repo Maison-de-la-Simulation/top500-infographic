@@ -38,6 +38,7 @@ aggregate Rmax. The method is described in [methodology.html](methodology.html).
 | File | Purpose |
 |---|---|
 | `index.html` | The infographic page (HTML/SVG/JS, data included) |
+| `top500_list.html` | The latest TOP500 list as a sortable, filterable table (data included) |
 | `methodology.html` | How vendors, technologies and shares are computed |
 | `build_infographic_data.py` | Reads the TOP500 XML files, computes the data and injects them into the page |
 | `everyday_devices.py` | Everyday devices (release date, peak FP32) for the comparison chart |

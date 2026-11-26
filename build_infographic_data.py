@@ -404,6 +404,48 @@ def main():
     except FileNotFoundError:
         print(html_path, "not found: data not injected")
 
+    # Latest list as a table (top500_list.html)
+    last_sites = ET.parse(files[-1]).getroot().findall("t:site", NS)
+    def num(site, tag, cast=float):
+        try:
+            return cast(float(text(site, tag)))
+        except ValueError:
+            return None
+    rows = []
+    for s in last_sites:
+        computer = text(s, "computer")
+        cpu_t = [n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "cpu" and r.search(computer)]
+        gpu_t = [n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "gpu" and r.search(computer)]
+        rows.append({
+            "rank": int(text(s, "rank")),
+            "id": text(s, "system-id"),
+            "name": (text(s, "system-name") or computer.split(",")[0]).split(" - ")[0].strip(),
+            "computer": computer,
+            "manufacturer": text(s, "manufacturer"),
+            "site": text(s, "installation-site/t:installation-site-name"),
+            "country": text(s, "country"),
+            "year": num(s, "year", int),
+            "cores": num(s, "number-of-processors", int),
+            "rmax": num(s, "r-max"),
+            "rpeak": num(s, "r-peak"),
+            "power": power_kw(s),
+            "cpu": ", ".join(cpu_t) or classify_cpu(computer, text(s, "manufacturer")),
+            "gpu": ", ".join(gpu_t) or (classify_gpu(computer) or ""),
+        })
+    list_path = os.path.join(HERE, "top500_list.html")
+    try:
+        with open(list_path, encoding="utf8") as fh:
+            page = fh.read()
+        payload = json.dumps({"date": lists[-1]["date"], "rows": rows}, ensure_ascii=False,
+                             separators=(",", ":")).replace("</", "<\\/")
+        page = re.sub(r"/\*LIST_START\*/.*?/\*LIST_END\*/",
+                      lambda _: "/*LIST_START*/" + payload + "/*LIST_END*/", page, flags=re.S)
+        with open(list_path, "w", encoding="utf8") as fh:
+            fh.write(page)
+        print("Latest list injected into", list_path)
+    except FileNotFoundError:
+        print(list_path, "not found: list not injected")
+
     # Inject the table of FP64 values and sources into the methodology page
     meth_path = os.path.join(HERE, "methodology.html")
     try:
