@@ -18,11 +18,13 @@ import re
 import statistics
 import sys
 import collections
+import csv
 import os
 import xml.etree.ElementTree as ET
 
-from tech_catalog import TECH_CATALOG, DEVICE_FP64, FP64_SOURCES, FLOPS_PER_CYCLE_REF
+from tech_catalog import TECH_CATALOG, DEVICE_FP64, FP64_SOURCES, FLOPS_PER_CYCLE_REF, CPU_SPECS, GPU_SPECS, GPU_VARIANTS
 from everyday_devices import EVERYDAY_DEVICES
+from interconnects import INTERCONNECTS, RAILS, ETHERNET_RE, ETHERNET_SPEED_RE
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -183,6 +185,89 @@ def classify_gpu(computer):
 # Parsing
 # ------------------------------------------------------------------------------
 
+CORES_FREQ_RE = re.compile(r"\b(\d{1,3})C\s+(\d+(?:\.\d+)?)\s*(GHz|MHz)", re.I)
+CORES_RE = re.compile(r"(?<![\d.])(\d{1,3})C\b")
+FREQ_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(GHz|MHz)", re.I)
+
+
+def cpu_characteristics(computer, cpu_techs):
+    """Cores per CPU, frequency and vector capabilities of a system's processor.
+
+    Cores and frequency come from the TOP500 'computer' field when it gives them;
+    otherwise from the reference model of the detected processor (CPU_SPECS),
+    flagged as such. Vector capabilities always come from CPU_SPECS."""
+    spec = next((CPU_SPECS[n] for n in cpu_techs if n in CPU_SPECS), None)
+    m = CORES_FREQ_RE.search(computer)
+    cores = int(m.group(1)) if m else None
+    freq = f"{m.group(2)} {m.group(3)}" if m else None
+    if cores is None:
+        mc = CORES_RE.search(computer)
+        cores = int(mc.group(1)) if mc else None
+    if freq is None:
+        mf = FREQ_RE.search(computer)
+        freq = f"{mf.group(1)} {mf.group(2)}" if mf else None
+    est = []  # which values come from the reference model
+    if cores is None and spec:
+        cores, est = spec[0], est + ["cores"]
+    if freq is None and spec:
+        freq, est = spec[1], est + ["freq"]
+    return [cores, freq.replace("ghz", "GHz").replace("mhz", "MHz") if freq else None,
+            spec[2] if spec else "", spec[3] if spec else None, est]
+
+
+def accelerator_characteristics(computer, gpu_techs):
+    """Compute units, shader cores, tensor cores, clock and memory of a system's
+    accelerator: a variant recognised in the 'computer' field, else the reference model."""
+    for n in gpu_techs:
+        for rx, spec in GPU_VARIANTS.get(n, []):
+            if re.search(rx, computer, re.I):
+                return list(spec[1:])
+        if n in GPU_SPECS:
+            return list(GPU_SPECS[n][1:])
+    return None
+
+
+INTERCONNECT_RES = [(re.compile(rx, re.I), name, bw, topo) for rx, name, bw, topo in INTERCONNECTS]
+
+
+def interconnect_characteristics(computer):
+    """Name, bandwidth of one port, usual topology and rails per node of the
+    interconnect named (or implied) in the TOP500 'computer' field."""
+    rails = next((n for rx, n in RAILS if re.search(rx, computer, re.I)), None)
+    for rx, name, bw, topo in INTERCONNECT_RES:
+        if rx.search(computer):
+            return [name, bw, topo, rails]
+    for seg in computer.split(","):  # Ethernet: speed read in the segment naming it
+        if re.search(ETHERNET_RE, seg, re.I):
+            if re.search(r"spectrum-?x", seg, re.I):
+                return ["NVIDIA Spectrum-X Ethernet", "400 Gb/s", "", rails]
+            m = re.search(ETHERNET_SPEED_RE, seg, re.I)
+            if m:
+                return [f"{m.group(1)}G Ethernet", f"{m.group(1)} Gb/s", "", rails]
+            if re.search(r"gigabit|gige|gig-e|\bgbe\b", seg, re.I):
+                return ["Gigabit Ethernet", "1 Gb/s", "", rails]
+            return ["Ethernet", "", "", rails]
+    return None
+
+
+def load_system_nodes():
+    """Hand-collected node composition (system_nodes.csv), keyed by system id."""
+    path = os.path.join(HERE, "system_nodes.csv")
+    out = {}
+    with open(path, encoding="utf8", newline="") as fh:
+        for r in csv.DictReader(fh):
+            num = lambda k: int(r[k]) if r[k].strip() else None
+            out[r["system_id"]] = {
+                "nodes": num("nodes"), "sockets": num("sockets_per_node"),
+                "accels": num("accelerators_per_node"), "cores_per_node": num("cores_per_node"),
+                "src": r["sources"].split(), "note": r["note"].strip(),
+                "memory": r.get("memory_per_node", "").strip(),
+                "price": ([r["price"].strip(), float(r["price_usd_millions"]), r["price_source"].strip()]
+                          if r.get("price", "").strip() else None),
+            }
+    return out
+
+
 def text(site, tag):
     v = site.findtext("t:" + tag, default="", namespaces=NS)
     return (v or "").strip()
@@ -229,6 +314,41 @@ def source_table(techs):
             "<th>Basis</th><th>Source</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table>")
 
 
+def cpu_table(techs):
+    """HTML table of the processor characteristics (methodology page)."""
+    esc = lambda t: str(t or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    rows = []
+    for t in sorted(techs, key=lambda t: (t["first"]["date"], t["name"])):
+        sp = t.get("spec")
+        if not sp:
+            continue
+        rows.append(
+            f"<tr><td>{esc(t['name'])}</td><td class=\"n\">{t['first']['date']}</td>"
+            f"<td>{esc(t['fp64_ref'])}</td><td class=\"n\">{sp['cores']}</td><td class=\"n\">{esc(sp['freq'])}</td>"
+            f"<td>{esc(sp['vector'])}</td><td class=\"n\">{sp['fpc']:g}</td></tr>")
+    return ("<table><thead><tr><th>Processor</th><th>First list</th><th>Basis of the FP64 value</th><th>Cores</th>"
+            "<th>Nominal frequency</th><th>Vector / SIMD capabilities</th><th>FP64 flop/cycle/core</th></tr></thead>"
+            "<tbody>" + "".join(rows) + "</tbody></table>")
+
+
+def gpu_table(techs):
+    """HTML table of the accelerator characteristics (methodology page)."""
+    esc = lambda t: str(t or "—").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    num = lambda v: f"{v:,}" if isinstance(v, int) else "—"
+    rows = []
+    for t in sorted(techs, key=lambda t: (t["first"]["date"], t["name"])):
+        a = t.get("aspec")
+        if not a:
+            continue
+        rows.append(
+            f"<tr><td>{esc(t['name'])}</td><td class=\"n\">{t['first']['date']}</td><td>{esc(a['model'])}</td>"
+            f"<td>{esc(a['units'])}</td><td class=\"n\">{num(a['shaders'])}</td><td class=\"n\">{num(a['tensor'])}</td>"
+            f"<td class=\"n\">{esc(a['clock'])}</td><td>{esc(a['memory'])}</td></tr>")
+    return ("<table><thead><tr><th>Accelerator</th><th>First list</th><th>Reference model</th><th>Compute units</th>"
+            "<th>CUDA cores / stream processors</th><th>Tensor / matrix cores</th><th>Boost clock</th><th>Memory</th>"
+            "</tr></thead><tbody>" + "".join(rows) + "</tbody></table>")
+
+
 def power_kw(site):
     try:
         v = float(text(site, "power") or 0)
@@ -249,6 +369,9 @@ def main():
     tech_re = [re.compile(rx, re.I) for _, _, _, rx in TECH_CATALOG]
     tech_first = {}   # tech index -> first appearance record
     tech_counts = collections.defaultdict(dict)  # tech index -> {date: nb systems}
+    all_systems = {}  # system-id -> row of its first appearance (all_systems.html)
+    system_nodes = load_system_nodes()
+    pending_techs = {}  # system-id -> (computer, cpu techs, gpu techs), resolved after the loop
 
     for f in files:
         stamp = re.search(r"TOP500_(\d{4})(\d{2})", f)
@@ -275,6 +398,28 @@ def main():
                 unknown_cpu[(computer, manufacturer)] += 1
             cpu_count[cpu] += 1
             cpu_rmax[cpu] += rmax
+
+            sid = text(s, "system-id")
+            if sid not in all_systems:  # first appearance of the system
+                cpu_t = [n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "cpu" and r.search(computer)]
+                gpu_t = [n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "gpu" and r.search(computer)]
+                all_systems[sid] = [
+                    date, sid,
+                    (text(s, "system-name") or computer.split(",")[0]).split(" - ")[0].strip(),
+                    computer, rmax, power_kw(s),
+                    ", ".join(cpu_t) or cpu,
+                    ", ".join(gpu_t) or (classify_gpu(computer) or ""),
+                    None, None, None, None, "",
+                ]
+                pending_techs[sid] = (computer, cpu_t, gpu_t)
+                if sid in system_nodes:  # node composition looked up by hand
+                    sn = system_nodes[sid]
+                    nodes = sn["nodes"]
+                    if nodes is None and sn["cores_per_node"]:
+                        # node count of this TOP500 entry, from its core count
+                        cores = int(float(text(s, "number-of-processors") or 0))
+                        nodes = round(cores / sn["cores_per_node"]) or None
+                    all_systems[sid][8:13] = [nodes, sn["sockets"], sn["accels"], sn["src"], sn["note"]]
 
             for k, rx in enumerate(tech_re):
                 if rx.search(computer):
@@ -357,6 +502,22 @@ def main():
             "gpu": {k: [gpu_count[k], round(100 * gpu_rmax[k] / total_rmax, 2)] for k in gpu_count},
         })
 
+    # When several technologies match a system (generic rules such as "opteron"),
+    # the list pages keep the most recent one, which is the most specific.
+    first_date = {TECH_CATALOG[k][2]: v["date"] for k, v in tech_first.items()}
+    newest = lambda names: [max(names, key=lambda n: first_date.get(n, ""))] if names else []
+    for sid, (computer, cpu_t, gpu_t) in pending_techs.items():
+        row = all_systems[sid]
+        cpu_t, gpu_t = newest(cpu_t), newest(gpu_t)
+        if cpu_t:
+            row[6] = cpu_t[0]
+        if gpu_t:
+            row[7] = gpu_t[0]
+        row += cpu_characteristics(computer, cpu_t) + [accelerator_characteristics(computer, gpu_t),
+                                                        interconnect_characteristics(computer),
+                                                        system_nodes.get(sid, {}).get("memory") or None,
+                                                        system_nodes.get(sid, {}).get("price")]
+
     techs = []
     for k, (lane, kind, name, _) in enumerate(TECH_CATALOG):
         if k not in tech_first:
@@ -369,6 +530,10 @@ def main():
             "fp64": DEVICE_FP64.get(name, (None, ""))[0],  # GFlop/s, one device
             "fp64_ref": DEVICE_FP64.get(name, (None, ""))[1],
             "fp64_src": fp64_source(name, tech_first[k].get("system_id", "")),
+            "spec": (dict(zip(("cores", "freq", "vector", "fpc"), CPU_SPECS[name]))
+                     if name in CPU_SPECS else None),
+            "aspec": (dict(zip(("model", "units", "shaders", "tensor", "clock", "memory"), GPU_SPECS[name]))
+                      if name in GPU_SPECS else None),
             "first": tech_first[k],
             "peak": [counts[peak_date], peak_date],
             "last": max(counts),
@@ -414,8 +579,8 @@ def main():
     rows = []
     for s in last_sites:
         computer = text(s, "computer")
-        cpu_t = [n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "cpu" and r.search(computer)]
-        gpu_t = [n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "gpu" and r.search(computer)]
+        cpu_t = newest([n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "cpu" and r.search(computer)])
+        gpu_t = newest([n for (_, kd, n, _), r in zip(TECH_CATALOG, tech_re) if kd == "gpu" and r.search(computer)])
         rows.append({
             "rank": int(text(s, "rank")),
             "id": text(s, "system-id"),
@@ -446,6 +611,41 @@ def main():
     except FileNotFoundError:
         print(list_path, "not found: list not injected")
 
+    # Every system ever listed, at its first appearance (all_systems.html)
+    all_path = os.path.join(HERE, "all_systems.html")
+    try:
+        with open(all_path, encoding="utf8") as fh:
+            page = fh.read()
+        payload = json.dumps({"first": lists[0]["date"], "last": lists[-1]["date"],
+                              "cols": ["date", "id", "name", "computer", "rmax", "power", "cpu", "gpu",
+                                       "nodes", "sockets", "accels", "src", "note",
+                                       "cpu_cores", "cpu_freq", "vector", "fpc", "est", "aspec", "net", "mem", "price"],
+                              "rows": list(all_systems.values())},
+                             ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+        page = re.sub(r"/\*ALL_START\*/.*?/\*ALL_END\*/",
+                      lambda _: "/*ALL_START*/" + payload + "/*ALL_END*/", page, flags=re.S)
+        with open(all_path, "w", encoding="utf8") as fh:
+            fh.write(page)
+        print(len(all_systems), "systems injected into", all_path)
+    except FileNotFoundError:
+        print(all_path, "not found: systems not injected")
+    # the same table as a CSV file
+    csv_path = os.path.join(HERE, "all_systems.csv")
+    with open(csv_path, "w", encoding="utf8", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["first_list", "system_id", "name", "computer", "rmax_gflops", "power_kw",
+                    "processor", "accelerator", "nodes", "sockets_per_node",
+                    "accelerators_per_node", "sources", "note", "cores_per_cpu", "cpu_frequency",
+                    "vector_simd", "fp64_flop_per_cycle_per_core", "estimated_from_reference_model",
+                    "accelerator_compute_units", "accelerator_shader_cores", "accelerator_tensor_cores",
+                    "accelerator_clock", "accelerator_memory", "interconnect", "interconnect_port_bandwidth",
+                    "interconnect_topology", "interconnect_rails_per_node", "memory_per_node",
+                    "price", "price_usd_millions_approx", "price_source"])
+        for r in all_systems.values():
+            w.writerow(r[:11] + [" ".join(r[11] or []), r[12]] + r[13:17] + [" ".join(r[17])]
+                       + (r[18] or [None] * 5) + (r[19] or [None] * 4) + [r[20]] + (r[21] or [None] * 3))
+    print("Systems written to", csv_path)
+
     # Inject the table of FP64 values and sources into the methodology page
     meth_path = os.path.join(HERE, "methodology.html")
     try:
@@ -454,6 +654,12 @@ def main():
         table = source_table(techs)
         meth = re.sub(r"<!--TABLE_START-->.*?<!--TABLE_END-->",
                       lambda _: "<!--TABLE_START-->" + table + "<!--TABLE_END-->", meth, flags=re.S)
+        ctable = cpu_table(techs)
+        gtable = gpu_table(techs)
+        meth = re.sub(r"<!--GPU_TABLE_START-->.*?<!--GPU_TABLE_END-->",
+                      lambda _: "<!--GPU_TABLE_START-->" + gtable + "<!--GPU_TABLE_END-->", meth, flags=re.S)
+        meth = re.sub(r"<!--CPU_TABLE_START-->.*?<!--CPU_TABLE_END-->",
+                      lambda _: "<!--CPU_TABLE_START-->" + ctable + "<!--CPU_TABLE_END-->", meth, flags=re.S)
         with open(meth_path, "w", encoding="utf8") as fh:
             fh.write(meth)
         print("Source table injected into", meth_path)

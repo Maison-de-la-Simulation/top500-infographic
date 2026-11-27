@@ -343,3 +343,163 @@ FP64_SOURCES = {
 # Reference for the FP64 operations per cycle of each microarchitecture, used for
 # the computed values.
 FLOPS_PER_CYCLE_REF = "https://en.wikichip.org/wiki/FLOPS"
+
+
+# ______________________________________________________________________________
+#
+# Characteristics of the reference model of each processor (the model used for
+# DEVICE_FP64): number of cores, nominal (base) frequency, vector or SIMD
+# capabilities, and FP64 operations per cycle and per core (an FMA counts as 2).
+# For vector machines (Cray, NEC, Fujitsu VPP, Hitachi) "cores" is the number of
+# CPUs or vector cores in the device, and the vector figure is per CPU.
+# Values come from vendor documentation and usual technical references
+# (see FLOPS_PER_CYCLE_REF); some are approximate.
+#
+# name -> (cores, nominal frequency, vector / SIMD capabilities, FP64 flop/cycle/core)
+# ______________________________________________________________________________
+
+CPU_SPECS = {
+    "i860 (Paragon)": (1, "50 MHz", "scalar pipelined FPU (add + multiply)", 1.5),
+    "Pentium Pro": (1, "200 MHz", "x87 scalar FPU", 1),
+    "Pentium III": (1, "800 MHz", "SSE, 128-bit (FP32 only); x87 for FP64", 1),
+    "Pentium 4 / Xeon NetBurst": (1, "1.7 GHz", "SSE2, 128-bit", 2),
+    "Itanium 2": (1, "900 MHz", "EPIC, 2 FMA units", 4),
+    "Xeon EM64T (Nocona)": (1, "3.2 GHz", "SSE3, 128-bit", 2),
+    "Xeon Woodcrest (51xx)": (2, "3.0 GHz", "SSSE3, 128-bit, add + multiply", 4),
+    "Xeon Clovertown (53xx)": (4, "2.33 GHz", "SSSE3, 128-bit, add + multiply", 4),
+    "Xeon Harpertown (54xx)": (4, "3.0 GHz", "SSE4.1, 128-bit, add + multiply", 4),
+    "Xeon Nehalem (55xx)": (4, "2.93 GHz", "SSE4.2, 128-bit, add + multiply", 4),
+    "Xeon Westmere (56xx)": (6, "2.66 GHz", "SSE4.2, 128-bit, add + multiply", 4),
+    "Xeon Sandy Bridge (E5)": (8, "2.6 GHz", "AVX, 256-bit, add + multiply", 8),
+    "Xeon Ivy Bridge (E5 v2)": (12, "2.2 GHz", "AVX, 256-bit, add + multiply", 8),
+    "Xeon Haswell (E5 v3)": (12, "2.5 GHz", "AVX2, 256-bit, 2 FMA units", 16),
+    "Xeon Broadwell (E5 v4)": (18, "2.1 GHz", "AVX2, 256-bit, 2 FMA units", 16),
+    "Xeon Phi Knights Landing": (68, "1.4 GHz", "AVX-512, 2 FMA units", 32),
+    "Xeon Skylake": (24, "2.1 GHz", "AVX-512, 2 FMA units", 32),
+    "Xeon Cascade Lake": (28, "2.7 GHz", "AVX-512, 2 FMA units", 32),
+    "Xeon Ice Lake": (36, "2.4 GHz", "AVX-512, 2 FMA units", 32),
+    "Xeon Sapphire Rapids": (56, "2.0 GHz", "AVX-512, 2 FMA units; AMX matrix units (BF16/INT8)", 32),
+    "Xeon CPU Max (HBM)": (52, "2.4 GHz", "AVX-512, 2 FMA units; AMX (BF16/INT8); 64 GB HBM2e", 32),
+    "Xeon Emerald Rapids": (32, "2.5 GHz", "AVX-512, 2 FMA units; AMX (BF16/INT8)", 32),
+    "Xeon 6 (Granite Rapids)": (96, "2.4 GHz", "AVX-512, 2 FMA units; AMX (BF16/FP16/INT8)", 32),
+    "Opteron (K8)": (1, "2.0 GHz", "SSE2, 128-bit (executed in 64-bit halves)", 2),
+    "Opteron dual-core": (2, "2.2 GHz", "SSE3, 128-bit (executed in 64-bit halves)", 2),
+    "Opteron Barcelona (quad-core)": (4, "1.9 GHz", "SSE4a, 128-bit, add + multiply", 4),
+    "Opteron Istanbul (6-core)": (6, "2.6 GHz", "SSE4a, 128-bit, add + multiply", 4),
+    "Opteron Magny-Cours": (12, "2.1 GHz", "SSE4a, 128-bit, add + multiply", 4),
+    "Opteron Interlagos": (16, "2.3 GHz", "AVX / FMA4, two 128-bit FMA units shared by 2 cores", 4),
+    "EPYC Naples": (32, "2.2 GHz", "AVX2, two 128-bit FMA units", 8),
+    "EPYC Rome": (64, "2.6 GHz", "AVX2, 256-bit, 2 FMA units", 16),
+    "EPYC Milan": (64, "2.45 GHz", "AVX2, 256-bit, 2 FMA units", 16),
+    "EPYC Genoa": (96, "2.4 GHz", "AVX-512 on 256-bit units, 2 FMA units", 16),
+    "EPYC Turin": (128, "2.4 GHz", "AVX-512, 512-bit, 2 FMA units", 32),
+    "Grace (Arm)": (72, "3.1 GHz", "Neoverse V2, SVE2 / NEON, 4 x 128-bit FMA units", 16),
+    "POWER2": (1, "66.7 MHz", "2 scalar FMA units", 4),
+    "PowerPC 604": (1, "332 MHz", "1 scalar FMA unit", 2),
+    "POWER3": (1, "200 MHz", "2 scalar FMA units", 4),
+    "POWER4": (2, "1.3 GHz", "2 scalar FMA units per core", 4),
+    "PowerPC 970": (1, "2.0 GHz", "2 scalar FMA units; AltiVec (FP32 only)", 4),
+    "PowerPC 440 (Blue Gene/L)": (2, "500 MHz", "double FPU (2-wide FP64 SIMD FMA)", 4),
+    "POWER5": (2, "1.9 GHz", "2 scalar FMA units per core", 4),
+    "PowerPC 450 (Blue Gene/P)": (4, "850 MHz", "double FPU (2-wide FP64 SIMD FMA)", 4),
+    "POWER6": (2, "4.7 GHz", "2 scalar FMA units per core; VMX (FP32 only)", 4),
+    "POWER7": (8, "3.836 GHz", "VSX, 4 FP64 FMA per cycle", 8),
+    "Power BQC (Blue Gene/Q)": (16, "1.6 GHz", "QPX, 256-bit FMA (4-wide FP64)", 8),
+    "POWER8": (8, "3.26 GHz", "VSX, two 128-bit FMA units", 8),
+    "POWER9": (22, "3.07 GHz", "VSX, two 128-bit FMA units", 8),
+    "POWER10": (15, "~4 GHz", "VSX (4 x 128-bit) and MMA matrix units", 64),
+    "VPP500 (vector)": (1, "100 MHz", "vector processor (vector pipes)", 16),
+    "VPP300 / VPP700": (1, "~143 MHz", "vector processor (vector pipes)", 15.4),
+    "VPP5000": (1, "300 MHz", "vector processor (vector pipes)", 32),
+    "SPARC64 V": (1, "675 MHz", "2 scalar FMA units", 4),
+    "SPARC64 VII": (4, "2.52 GHz", "2 scalar FMA units per core", 4),
+    "SPARC64 VIIIfx (K)": (8, "2.0 GHz", "HPC-ACE, 2-wide FP64 SIMD, 2 FMA units", 8),
+    "SPARC64 IXfx": (16, "1.848 GHz", "HPC-ACE, 2-wide FP64 SIMD, 2 FMA units", 8),
+    "SPARC64 XIfx": (32, "1.98 GHz", "HPC-ACE2, 256-bit SIMD, 2 FMA units", 16),
+    "A64FX (Arm)": (48, "2.0 GHz", "SVE, 512-bit, 2 FMA units", 32),
+    "ShenWei SW1600": (16, "975 MHz", "SIMD, 256-bit FMA", 8),
+    "Loongson / Godson": (8, "1.05 GHz", "256-bit vector units, 2 FMA (approx.)", 16),
+    "Phytium FT-1500 / FT-2000": (64, "2.2 GHz", "NEON, 128-bit FMA (approx.)", 4),
+    "Sunway SW26010": (260, "1.45 GHz", "256-bit SIMD FMA (4-wide FP64)", 8),
+    "Hygon Dhyana / C86": (32, "2.0 GHz", "AVX2, two 128-bit FMA units (Zen)", 8),
+    "Sunway SW26010-Pro": (384, "~2.25 GHz", "512-bit SIMD FMA (approx.)", 16),
+    "LX2 (LingKun)": (304, "1.55 GHz", "Armv9, SVE and matrix units (designer figure)", 128),
+    "Cray T90": (1, "450 MHz", "vector processor, 2 vector pipes (add + multiply)", 4),
+    "Cray J90": (1, "100 MHz", "vector processor (add + multiply)", 2),
+    "Cray SV1": (1, "300 MHz", "vector processor, 2 vector pipes (add + multiply)", 4),
+    "Cray X1": (4, "800 MHz", "MSP of 4 vector SSPs, 2 pipes each", 4),
+    "NEC SX-4": (1, "125 MHz", "vector processor, 8 pipes (add + multiply)", 16),
+    "NEC SX-5": (1, "250 MHz", "vector processor, 16 pipes (add + multiply)", 32),
+    "NEC SX-6 (Earth Simulator)": (1, "500 MHz", "vector processor, 8 pipes (add + multiply)", 16),
+    "NEC SX-8": (1, "1 GHz", "vector processor, 4 pipe sets (vector unit at 2 GHz)", 16),
+    "NEC SX-9": (1, "3.2 GHz", "vector processor, 8 pipe sets, 2 add + 2 multiply", 32),
+    "NEC SX-ACE": (4, "1 GHz", "vector cores, 4 x 16 pipes (FMA)", 64),
+    "Hitachi SR2201": (1, "150 MHz", "PA-RISC based, pseudo-vector, add + multiply", 2),
+    "Hitachi SR8000": (1, "250 MHz", "POWER based, pseudo-vector, 2 FMA units", 4),
+    "Hitachi SR11000": (2, "1.7 GHz", "POWER4+, 2 scalar FMA units per core", 4),
+    "Alpha 21064 (Cray T3D)": (1, "150 MHz", "scalar FPU", 1),
+    "Alpha 21164 (EV5)": (1, "300 MHz", "scalar FPU, add + multiply", 2),
+    "Alpha 21264 (EV6)": (1, "500 MHz", "scalar FPU, add + multiply", 2),
+    "MIPS R8000 (POWER CHALLENGE)": (1, "90 MHz", "2 scalar FMA units", 4),
+    "MIPS R10000 (ORIGIN 2000)": (1, "195 MHz", "scalar FPU, add + multiply", 2),
+    "MIPS R12000 / R14000 (ORIGIN 3000)": (1, "400 MHz", "scalar FPU, add + multiply", 2),
+    "UltraSPARC": (1, "250 MHz", "scalar FPU, add + multiply; VIS (integer SIMD)", 2),
+    "UltraSPARC III": (1, "1.2 GHz", "scalar FPU, add + multiply; VIS (integer SIMD)", 2),
+    "PA-RISC 7x00 (SPP)": (1, "100 MHz", "scalar FPU, multiply-add", 2),
+    "PA-8000 (Exemplar X)": (1, "180 MHz", "2 scalar FMA units", 4),
+    "PA-8x00 (SuperDome)": (1, "552 MHz", "2 scalar FMA units", 4),
+    "Arm ThunderX2": (28, "2.0 GHz", "NEON, two 128-bit FMA units", 8),
+    "Arm Kunpeng / Graviton": (64, "2.6 GHz", "NEON, 128-bit FMA", 4),
+}
+
+
+# ______________________________________________________________________________
+#
+# Characteristics of the reference model of each accelerator (the model used
+# for DEVICE_FP64): compute units, shader cores (NVIDIA CUDA cores, AMD stream
+# processors, Intel vector lanes), tensor or matrix cores, boost clock and
+# memory. None when the vendor publishes no figure. Some values are approximate.
+#
+# name -> (reference model, compute units, shader cores, tensor / matrix cores,
+#          clock, memory)
+# ______________________________________________________________________________
+
+GPU_SPECS = {
+    "Xeon Phi Knights Corner": ("Xeon Phi SE10P", "61 x86 cores, 512-bit SIMD", None, None, "1.1 GHz", "8 GB GDDR5"),
+    "Data Center GPU Max (Ponte Vecchio)": ("Max 1550", "128 Xe cores", 16384, 1024, "1.6 GHz", "128 GB HBM2e"),
+    "Radeon / FirePro": ("Radeon HD 4870 X2 (2 GPUs)", "2 x 10 SIMD engines", 1600, None, "575 MHz", "2 GB GDDR5"),
+    "Instinct MI50 / MI60": ("MI60", "64 CUs", 4096, None, "1.8 GHz", "32 GB HBM2"),
+    "Instinct MI100": ("MI100", "120 CUs", 7680, 480, "1.502 GHz", "32 GB HBM2"),
+    "Instinct MI250X": ("MI250X (2 dies)", "220 CUs", 14080, 880, "1.7 GHz", "128 GB HBM2e"),
+    "Instinct MI300A (APU)": ("MI300A", "228 CUs + 24 Zen 4 CPU cores", 14592, 912, "2.1 GHz", "128 GB HBM3 (shared with the CPU)"),
+    "Instinct MI300X": ("MI300X", "304 CUs", 19456, 1216, "2.1 GHz", "192 GB HBM3"),
+    "Instinct MI325X / MI355X": ("MI355X", "256 CUs", 16384, 1024, "2.4 GHz", "288 GB HBM3E"),
+    "Tesla (GT200)": ("Tesla C1060", "30 SMs", 240, None, "1.296 GHz", "4 GB GDDR3"),
+    "Fermi": ("Tesla C2050", "14 SMs", 448, None, "1.15 GHz", "3 GB GDDR5"),
+    "Kepler": ("Tesla K20X", "14 SMX", 2688, None, "732 MHz", "6 GB GDDR5"),
+    "Pascal (P100)": ("Tesla P100 PCIe", "56 SMs", 3584, None, "1.303 GHz", "16 GB HBM2"),
+    "Volta (V100)": ("Tesla V100 SXM2", "80 SMs", 5120, 640, "1.53 GHz", "16 or 32 GB HBM2"),
+    "Ampere (A100)": ("A100 SXM4", "108 SMs", 6912, 432, "1.41 GHz", "40 or 80 GB HBM2e"),
+    "Hopper (H100 / GH200)": ("H100 PCIe (SXM: 132 SMs, 16,896 CUDA cores, 528 tensor cores)", "114 SMs", 14592, 456, "1.755 GHz", "80 GB HBM2e"),
+    "Blackwell (B200 / GB200)": ("B200 (2 dies; NVIDIA publishes no SM count, 148 SMs is the usual figure)", "148 SMs", 18944, 592, "~1.84 GHz", "180 GB HBM3e"),
+    "PowerXCell 8i": ("PowerXCell 8i", "1 PPE + 8 SPEs, 128-bit SIMD", None, None, "3.2 GHz", "up to 32 GB DDR2"),
+    "Matrix-2000": ("Matrix-2000", "128 cores, 256-bit vector units", None, None, "1.2 GHz", "DDR4"),
+    "Hygon DCU": ("DCU (Deep Computing Unit)", None, None, None, None, None),
+    "MetaX": ("MetaX C500", "64 CUs (community estimate)", None, None, None, "64 GB HBM2e"),
+    "NEC SX-Aurora (Vector Engine)": ("Vector Engine Type 10AE", "8 vector cores, 32 pipes x 3 FMA", None, None, "1.584 GHz", "48 GB HBM2"),
+    "ClearSpeed": ("Advance X620 (2 CSX600)", "2 x 96 processing elements", None, None, "210 MHz", "1 GB DDR2"),
+    "GRAPE-DR": ("GRAPE-DR chip", "512 processing elements", None, None, "500 MHz", "external DDR2"),
+    "PEZY-SC": ("PEZY-SC chip", "1,024 processing elements", None, None, "733 MHz", "DDR3"),
+    "MN-Core": ("MN-Core board (4 dies)", "4 dies, SIMD matrix arithmetic units", None, None, "500 MHz", "32 GB DDR4"),
+}
+
+# Variants of an accelerator family recognised in the TOP500 'computer' field;
+# the first matching regular expression replaces the reference model's figures
+# (same layout as GPU_SPECS).
+GPU_VARIANTS = {
+    "Hopper (H100 / GH200)": [
+        (r"GH200|Grace Hopper|GH Superchip", ("GH200", "132 SMs + 72 Grace CPU cores", 16896, 528, "1.98 GHz", "96 GB HBM3 (+ LPDDR5X on the Grace CPU)")),
+        (r"H200", ("H200 SXM", "132 SMs", 16896, 528, "1.98 GHz", "141 GB HBM3e")),
+        (r"H100.*(SXM|HGX|DGX)|DGX H100|HGX H100|ND H100|NDv5|H100 (80|94|64)", ("H100 SXM", "132 SMs", 16896, 528, "1.98 GHz", "80 GB HBM3")),
+    ],
+}

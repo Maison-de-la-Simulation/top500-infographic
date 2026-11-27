@@ -39,8 +39,12 @@ aggregate Rmax. The method is described in [methodology.html](methodology.html).
 |---|---|
 | `index.html` | The infographic page (HTML/SVG/JS, data included) |
 | `top500_list.html` | The latest TOP500 list as a sortable, filterable table (data included) |
+| `all_systems.html` | Every system published since the first list, at its first appearance (data included) |
 | `methodology.html` | How vendors, technologies and shares are computed |
 | `build_infographic_data.py` | Reads the TOP500 XML files, computes the data and injects them into the page |
+| `system_nodes.csv` | Hand-collected database: node composition (nodes, sockets and accelerators per node, sources) of about 580 of the most powerful systems |
+| `all_systems.csv` | Every system ever listed, at its first appearance, with the node data (generated) |
+| `interconnects.py` | Interconnects recognised in the TOP500 entries (port bandwidth, usual topology) |
 | `everyday_devices.py` | Everyday devices (release date, peak FP32) for the comparison chart |
 | `tech_catalog.py` | Catalogue of tracked technologies (vendor, type, name, regular expression) and peak FP64 of one device |
 | `top500_infographic_data.json` | The same data as JSON |
